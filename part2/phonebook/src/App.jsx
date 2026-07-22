@@ -1,24 +1,41 @@
 import { useEffect } from 'react'
 import { useState } from 'react'
+import axios from 'axios'
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: 'Arto Hellas', number: '040-123456', id: 1 },
-    { name: 'Ada Lovelace', number: '39-44-5323523', id: 2 },
-    { name: 'Dan Abramov', number: '12-43-234345', id: 3 },
-    { name: 'Mary Poppendieck', number: '39-23-6423122', id: 4 }
-  ])
+  const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [number, setNumber] = useState(null)
   const [searchedName, setSearchedName] = useState('')
-  const submitName = (event) => {
+  const [isPhoneBookChanged, setIsPhoneBookChanged] = useState(false)
+
+  useEffect(() => {
+    axios.get('http://localhost:3001/persons')
+      .then((res) => { setPersons(res.data); console.log(res) })
+      .catch((err) => console.log(err))
+  }, [isPhoneBookChanged])
+
+  const submitName = async (event) => {
     event.preventDefault()
     if (persons.find(person => person.name === newName)) {
-      alert(`${newName} is already added to the phonebook`)
+      // console.log("if exected")
+      if( confirm(`${newName} is already added to the phonebook do you want to replace the number?`) ){
+        axios.put(`http://localhost:3001/persons/${persons.find(person => person.name === newName).id}`, {name: newName, number: number})
+        .then(res => {alert("number updated successfully !"); setIsPhoneBookChanged(!isPhoneBookChanged)})
+      }
     }
     else {
-      setPersons([...persons, { name: newName, number: number }])
+      // setPersons([...persons, { name: newName, number: number }])
+      await axios.post('http://localhost:3001/persons', { name: newName, number: number })
+        .then((res) => { console.log(res); setIsPhoneBookChanged(!isPhoneBookChanged) })
+        .catch((err) => console.log(err))
     }
+  }
+
+  const handleDelete = (id) => {
+    axios.delete(`http://localhost:3001/persons/${id}`)
+      .then(res => {alert(`${res.data.name} is deleted successfully`); setIsPhoneBookChanged(!isPhoneBookChanged)})
+      .catch(e => console.log(e))
   }
   return (
     <div>
@@ -44,9 +61,10 @@ const App = () => {
       </div>
       <ul>
         {persons.filter(person => person.name.includes(searchedName)).map(person =>
-          <li key={person.name}>
+          <li key={person.id}>
             {person.name} &nbsp;
             {person.number}
+            <button onClick={() => handleDelete(person.id)} >delete</button>
           </li>)}
       </ul>
     </div>
