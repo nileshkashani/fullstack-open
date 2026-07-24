@@ -1,9 +1,11 @@
 const express = require('express')
-    const morgan = require('morgan')
+const morgan = require('morgan')
+const cors = require('cors')
 const app = express()
 require('dotenv').config()
 const PORT = process.env.PORT
 
+app.use(cors()) 
 app.use(express.json())
 morgan.token('body', (request) => {
   return JSON.stringify(request.body)
