@@ -48,11 +48,12 @@ app.get('/api/persons/:id', (req, resp) => {
     resp.json(hadrcodedPersonData.find(person => person.id === req.params.id))
 })
 
-app.get('/info', (req, resp) => {
+app.get('api/persons/info', (req, resp) => {
     resp.send(`<p>Phonebook has info for ${hadrcodedPersonData.length} people</p><p>${new Date()}</p>`)
 })
 
-app.delete('/persons/:id', (req, resp) => {
+app.delete('/api/persons/:id', (req, resp) => {
+    console.log("executed")
     const id = req.params.id
     hadrcodedPersonData = hadrcodedPersonData.filter(person => person.id !== id)
     resp.status(200).json("record deleted successfully!")

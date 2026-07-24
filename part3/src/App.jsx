@@ -10,6 +10,8 @@ const notification = (message) => {
   );
 }
 
+const baseUrl = '/api/persons'
+
 const App = () => {
   const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
@@ -20,14 +22,14 @@ const App = () => {
   const [isNotificationActive, setIsNotificationActive] = useState(false)
 
   useEffect(() => {
-    axios.get('http://localhost:3001/api/persons')
+    axios.get(`${baseUrl}`)
       .then((res) => { setPersons(res.data); console.log(res) })
       .catch((err) => console.log(err))
   }, [isPhoneBookChanged])
 
   const submitName = async (event) => {
     event.preventDefault()
-    await axios.post('http://localhost:3001/api/persons', { name: newName, number: number })
+    await axios.post(`${baseUrl}`, { name: newName, number: number })
       .then(res => {
         setIsPhoneBookChanged(!isPhoneBookChanged)
         setNotificationMessage(`${newName} added to phonebook successfully!`)
@@ -45,7 +47,7 @@ const App = () => {
       })
   }
   const handleDelete = (id) => {
-    axios.delete(`http://localhost:3001/persons/${id}`)
+    axios.delete(`${baseUrl}/${id}`)
       .then(res => {
         setNotificationMessage(`${res.data.name} is deleted successfully`)
         setIsPhoneBookChanged(!isPhoneBookChanged)
