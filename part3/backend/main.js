@@ -5,7 +5,7 @@ const { mongo } = require('mongoose')
 const app = express()
 require('dotenv').config()
 const PORT = process.env.PORT
-const Person = require('./models/Person')
+const Person = require('./models/person.js')
 app.use(cors())
 app.use(express.static('dist'))
 app.use(express.json())
