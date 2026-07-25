@@ -38,7 +38,7 @@ let hadrcodedPersonData = [
 ]
 
 app.get('/', (req, res) =>
-    res.send('hello'))
+    res.send(process.env.MONGO_USERNAME))
 
 app.get('/api/persons', (req, resp) => {
     resp.json(hadrcodedPersonData);
