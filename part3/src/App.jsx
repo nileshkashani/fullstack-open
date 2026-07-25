@@ -47,8 +47,11 @@ const App = () => {
               setSelectedPerson(res.data)
             }
           })
-          .catch(() => {
-            setNotificationMessage(`failed to update ${newName}`)
+          .catch((err) => {
+            const errorMsg = err.response && err.response.data && err.response.data.error
+              ? err.response.data.error
+              : `failed to update ${newName}`
+            setNotificationMessage(errorMsg)
             setIsNotificationActive(true)
             setTimeout(() => {
               setIsNotificationActive(false)
@@ -67,8 +70,11 @@ const App = () => {
           setIsNotificationActive(false)
         }, 5000)
       })
-      .catch(() => {
-        setNotificationMessage(`failed to add ${newName} to phonebook`)
+      .catch((err) => {
+        const errorMsg = err.response && err.response.data && err.response.data.error
+          ? err.response.data.error
+          : `failed to add ${newName} to phonebook`
+        setNotificationMessage(errorMsg)
         setIsNotificationActive(true)
         setTimeout(() => {
           setIsNotificationActive(false)
