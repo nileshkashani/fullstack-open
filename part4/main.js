@@ -1,14 +1,7 @@
-const app = require('express')()
-const connectDB = require('./config/mongoConfig')
-const blogRouter = require('./routes/blogRoute')
+const app = require('./app')
+const config = require('./utils/config')
+const logger = require('./utils/logger')
 
-connectDB()
-
-app.use(require('express').json())
-app.use('/api/blogs', blogRouter)
-
-
-const PORT = 3003
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
+app.listen(config.PORT, () => {
+  logger.info(`Server running on port ${config.PORT}`)
 })

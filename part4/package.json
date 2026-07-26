@@ -4,7 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "test": "node --test",
+    "test": "cross-env NODE_ENV=test node --test",
     "start": "node main.js",
     "dev": "nodemon main.js"
   },
@@ -16,5 +16,9 @@
     "express": "^5.2.1",
     "mongoose": "^9.8.0",
     "nodemon": "^3.1.14"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "supertest": "^7.2.2"
   }
 }

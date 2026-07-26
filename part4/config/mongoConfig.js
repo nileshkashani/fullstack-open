@@ -1,12 +1,16 @@
-require('dotenv').config()
 const mongoose = require('mongoose')
+const config = require('../utils/config')
+const logger = require('../utils/logger')
+
 mongoose.set('strictQuery', false)
 
-const connectDB = () => {
-    mongoose.connect(process.env.MONGO_URI).then(() => {
-        console.log('connected to MongoDB')
-    }).catch((error) => {
-        console.log('error connecting to MongoDB:', error.message)
-    })
+const connectDB = async () => {
+  try {
+    await mongoose.connect(config.MONGODB_URI)
+    logger.info('connected to MongoDB')
+  } catch (error) {
+    logger.error('error connecting to MongoDB:', error.message)
+  }
 }
+
 module.exports = connectDB
