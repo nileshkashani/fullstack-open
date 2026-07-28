@@ -2,15 +2,38 @@ const { test, after, beforeEach, describe } = require('node:test')
 const assert = require('node:assert')
 const supertest = require('supertest')
 const mongoose = require('mongoose')
+const jwt = require('jsonwebtoken')
+const bcrypt = require('bcrypt')
 const helper = require('./test_helper')
 const app = require('../app')
 const api = supertest(app)
 const Blog = require('../models/BlogModel')
+const User = require('../models/UserModel')
 
 describe('when there is initially some blogs saved', () => {
+  let token = null
+  let testUser = null
+
   beforeEach(async () => {
     await Blog.deleteMany({})
-    await Blog.insertMany(helper.initialBlogs)
+    await User.deleteMany({})
+
+    const passwordHash = await bcrypt.hash('secret', 10)
+    testUser = new User({ username: 'testuser', name: 'Test User', passwordHash })
+    await testUser.save()
+
+    const userForToken = {
+      username: testUser.username,
+      id: testUser._id
+    }
+    token = jwt.sign(userForToken, process.env.SECRET)
+
+    const blogObjects = helper.initialBlogs.map(blog => new Blog({ ...blog, user: testUser._id }))
+    const promiseArray = blogObjects.map(blog => blog.save())
+    await Promise.all(promiseArray)
+
+    testUser.blogs = blogObjects.map(b => b._id)
+    await testUser.save()
   })
 
   test('blogs are returned as json', async () => {
@@ -44,6 +67,7 @@ describe('when there is initially some blogs saved', () => {
 
       await api
         .post('/api/blogs')
+        .set('Authorization', `Bearer ${token}`)
         .send(newBlog)
         .expect(201)
         .expect('Content-Type', /application\/json/)
@@ -64,6 +88,7 @@ describe('when there is initially some blogs saved', () => {
 
       const response = await api
         .post('/api/blogs')
+        .set('Authorization', `Bearer ${token}`)
         .send(newBlog)
         .expect(201)
         .expect('Content-Type', /application\/json/)
@@ -84,6 +109,7 @@ describe('when there is initially some blogs saved', () => {
 
       await api
         .post('/api/blogs')
+        .set('Authorization', `Bearer ${token}`)
         .send(newBlog)
         .expect(400)
 
@@ -100,8 +126,29 @@ describe('when there is initially some blogs saved', () => {
 
       await api
         .post('/api/blogs')
+        .set('Authorization', `Bearer ${token}`)
         .send(newBlog)
         .expect(400)
+
+      const blogsAtEnd = await helper.blogsInDb()
+      assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length)
+    })
+
+    test('fails with status code 401 Unauthorized if token is not provided', async () => {
+      const newBlog = {
+        title: 'Unauthorized Blog',
+        author: 'Unknown Author',
+        url: 'http://unauthorized.com',
+        likes: 1
+      }
+
+      const result = await api
+        .post('/api/blogs')
+        .send(newBlog)
+        .expect(401)
+        .expect('Content-Type', /application\/json/)
+
+      assert.ok(result.body.error.includes('token missing'))
 
       const blogsAtEnd = await helper.blogsInDb()
       assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length)
@@ -109,12 +156,13 @@ describe('when there is initially some blogs saved', () => {
   })
 
   describe('deletion of a blog', () => {
-    test('succeeds with status code 204 if id is valid', async () => {
+    test('succeeds with status code 204 if id is valid and user is the creator', async () => {
       const blogsAtStart = await helper.blogsInDb()
       const blogToDelete = blogsAtStart[0]
 
       await api
         .delete(`/api/blogs/${blogToDelete.id}`)
+        .set('Authorization', `Bearer ${token}`)
         .expect(204)
 
       const blogsAtEnd = await helper.blogsInDb()
@@ -122,6 +170,47 @@ describe('when there is initially some blogs saved', () => {
 
       const titles = blogsAtEnd.map(b => b.title)
       assert.ok(!titles.includes(blogToDelete.title))
+    })
+
+    test('fails with status code 401 Unauthorized if token is not provided', async () => {
+      const blogsAtStart = await helper.blogsInDb()
+      const blogToDelete = blogsAtStart[0]
+
+      const result = await api
+        .delete(`/api/blogs/${blogToDelete.id}`)
+        .expect(401)
+        .expect('Content-Type', /application\/json/)
+
+      assert.ok(result.body.error.includes('token missing'))
+
+      const blogsAtEnd = await helper.blogsInDb()
+      assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length)
+    })
+
+    test('fails with status code 401 Unauthorized if another user attempts deletion', async () => {
+      const anotherHash = await bcrypt.hash('secret2', 10)
+      const anotherUser = new User({ username: 'another', name: 'Another User', passwordHash: anotherHash })
+      await anotherUser.save()
+
+      const userForToken = {
+        username: anotherUser.username,
+        id: anotherUser._id
+      }
+      const anotherToken = jwt.sign(userForToken, process.env.SECRET)
+
+      const blogsAtStart = await helper.blogsInDb()
+      const blogToDelete = blogsAtStart[0]
+
+      const result = await api
+        .delete(`/api/blogs/${blogToDelete.id}`)
+        .set('Authorization', `Bearer ${anotherToken}`)
+        .expect(401)
+        .expect('Content-Type', /application\/json/)
+
+      assert.ok(result.body.error.includes('only the creator can delete this blog'))
+
+      const blogsAtEnd = await helper.blogsInDb()
+      assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length)
     })
   })
 
